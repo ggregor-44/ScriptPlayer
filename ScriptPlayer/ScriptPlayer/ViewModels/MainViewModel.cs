@@ -3300,7 +3300,7 @@ namespace ScriptPlayer.ViewModels
 
         private void ChangeFilterRange(double d)
         {
-            Settings.FilterRange = Math.Max(0.1, Math.Min(0.9, Settings.FilterRange + d));
+            Settings.FilterRange = Math.Max(0.1, Math.Min(0.99, Settings.FilterRange + d));
             OsdShowMessage($"Filter Range: {Settings.FilterRange:p0}", TimeSpan.FromSeconds(2), "FilterRange");
         }
 
@@ -4102,8 +4102,8 @@ namespace ScriptPlayer.ViewModels
         {
             TimeSpan duration = e.NextAction.TimeStamp - e.PreviousAction.TimeStamp;
             TimeSpan durationStretched = duration.Divide(TimeSource.PlaybackRate);
-            byte currentPositionTransformed = TransformPosition(e.PreviousAction.Position, e.PreviousAction.TimeStamp);
-            byte nextPositionTransformed = TransformPosition(e.NextAction.Position, e.NextAction.TimeStamp);
+            byte currentPositionTransformed = TransformPosition(e.PreviousAction.Position, e.PreviousAction.TimeStamp, duration);
+            byte nextPositionTransformed = TransformPosition(e.NextAction.Position, e.NextAction.TimeStamp, duration);
 
             CurrentPosition = (1 - e.Progress) * (currentPositionTransformed / 99.0) + (e.Progress) * (nextPositionTransformed / 99.0);
 
@@ -4179,9 +4179,9 @@ namespace ScriptPlayer.ViewModels
                 TimeSpan durationStretched = duration.Divide(TimeSource.PlaybackRate);
 
                 byte currentPositionTransformed =
-                    TransformPosition(eventArgs.CurrentAction.Position, eventArgs.CurrentAction.TimeStamp);
+                    TransformPosition(eventArgs.CurrentAction.Position, eventArgs.CurrentAction.TimeStamp, duration);
                 byte nextPositionTransformed =
-                    TransformPosition(eventArgs.NextAction.Position, eventArgs.NextAction.TimeStamp);
+                    TransformPosition(eventArgs.NextAction.Position, eventArgs.NextAction.TimeStamp, duration);
 
                 // Execute next movement
                 byte speedOriginal =
@@ -4356,9 +4356,66 @@ namespace ScriptPlayer.ViewModels
             if (invert)
                 relative = 1.0 - relative;
 
-            const double secondsPercycle = 10.0;
+            const double secondsPercycle = 30.0;
             double cycle = timestamp / secondsPercycle;
             double range = Settings.FilterRange;
+
+            switch (Settings.FilterMode)
+            {
+                case PositionFilterMode.FullRange:
+                    break;
+                case PositionFilterMode.Top:
+                    GetRange(ref minPosition, ref maxPosition, range, 1.0);
+                    break;
+                case PositionFilterMode.Middle:
+                    GetRange(ref minPosition, ref maxPosition, range, 0.5);
+                    break;
+                case PositionFilterMode.Bottom:
+                    GetRange(ref minPosition, ref maxPosition, range, 0);
+                    break;
+                case PositionFilterMode.SineWave:
+                    {
+                        double factor = (1 + Math.Sin(cycle * Math.PI * 2.0)) / 2.0;
+                        GetRange(ref minPosition, ref maxPosition, range, factor);
+                        break;
+                    }
+                case PositionFilterMode.TopBottom:
+                    {
+                        double progress = cycle - Math.Floor(cycle);
+                        double factor = progress >= 0.5 ? 1 : 0;
+                        GetRange(ref minPosition, ref maxPosition, range, factor);
+                        break;
+                    }
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+
+            range = (byte)(maxPosition - minPosition);
+
+            byte absolute = (byte)(minPosition + range * relative);
+
+            return SpeedPredictor.ClampValue(absolute);
+        }
+        private byte TransformPositionWithDuration(byte pos, byte inMin, byte inMax, double timestamp, TimeSpan duration)
+        {
+            double relative = (double)(pos - inMin) / (inMax - inMin);
+            relative = Math.Min(1, Math.Max(0, relative));
+
+            byte minPosition = Settings.MinPosition;
+            byte maxPosition = Settings.MaxPosition;
+            bool invert = Settings.InvertPosition;
+
+            if (invert)
+                relative = 1.0 - relative;
+            const double secondsPercycle = 30.0;
+            double cycle = timestamp / secondsPercycle;
+            double range = Settings.FilterRange;
+
+            if (duration.TotalMilliseconds <= 1500)
+            {
+                double rangeFactor = (Math.Sin(duration.TotalMilliseconds / 1500.0 * Math.PI * 0.5) * 0.8) + 0.2;
+                range *= rangeFactor;
+            }
 
             switch (Settings.FilterMode)
             {
@@ -4407,9 +4464,9 @@ namespace ScriptPlayer.ViewModels
             maxPosition = (byte)newMax;
         }
 
-        private byte TransformPosition(byte pos, TimeSpan timeStamp)
+        private byte TransformPosition(byte pos, TimeSpan timeStamp, TimeSpan duration)
         {
-            return TransformPosition(pos, _minScriptPosition, _maxScriptPosition, timeStamp.TotalSeconds);
+            return TransformPositionWithDuration(pos, _minScriptPosition, _maxScriptPosition, timeStamp.TotalSeconds, duration);
         }
 
         private void SetDevices(DeviceCommandInformation information, bool requirePlaying = true)
