@@ -4407,7 +4407,7 @@ namespace ScriptPlayer.ViewModels
 
             if (invert)
                 relative = 1.0 - relative;
-            const double secondsPercycle = 30.0;
+            const double secondsPercycle = 20.0;
             double cycle = timestamp / secondsPercycle;
             double range = Settings.FilterRange;
 
