@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -21,6 +22,15 @@ namespace ScriptPlayer.Shared
         public static readonly DependencyProperty OverlayOpacityProperty = DependencyProperty.Register(
             "OverlayOpacity", typeof(Brush), typeof(SeekBar),
             new FrameworkPropertyMetadata(Brushes.Black, FrameworkPropertyMetadataOptions.AffectsRender));
+
+        public static readonly DependencyProperty OverlayGeometryProperty = DependencyProperty.Register(
+            "OverlayGeometry", typeof(Geometry), typeof(SeekBar), new FrameworkPropertyMetadata(default(Geometry), FrameworkPropertyMetadataOptions.AffectsRender));
+
+        public Geometry OverlayGeometry
+        {
+            get { return (Geometry) GetValue(OverlayGeometryProperty); }
+            set { SetValue(OverlayGeometryProperty, value); }
+        }
 
         public static readonly DependencyProperty ProgressProperty = DependencyProperty.Register(
             "Progress", typeof(TimeSpan), typeof(SeekBar),
@@ -229,7 +239,22 @@ namespace ScriptPlayer.Shared
 
             dc.PushOpacityMask(OverlayOpacity);
 
+            bool overlayGeometry = false;
+
+            if (OverlayGeometry != null)
+            {
+                Geometry geo = OverlayGeometry.Clone();
+                geo.Transform = new ScaleTransform(ActualWidth, ActualHeight);
+
+                overlayGeometry = true;
+                dc.PushClip(geo);
+            }
+
+
             dc.DrawRectangle(Overlay, null, rect);
+
+            if(overlayGeometry)
+                dc.Pop();
 
             dc.Pop();
 

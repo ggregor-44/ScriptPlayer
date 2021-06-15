@@ -57,6 +57,8 @@ namespace ScriptPlayer.Shared
                 return true;
             }
 
+            await Disconnect();
+
             try
             {
                 var client = new ButtplugClient("ScriptPlayer");
@@ -67,9 +69,10 @@ namespace ScriptPlayer.Shared
                 client.ScanningFinished += Client_ScanningFinished;
                 client.ServerDisconnect += Client_ServerDisconnect;
 
-                await client.ConnectAsync(new ButtplugWebsocketConnectorOptions(new Uri(_url)));
                 _client = client;
 
+                await client.ConnectAsync(new ButtplugWebsocketConnectorOptions(new Uri(_url)));
+                
                 foreach (var buttplugClientDevice in _client.Devices)
                 {
                     AddDevice(buttplugClientDevice);
@@ -80,6 +83,7 @@ namespace ScriptPlayer.Shared
             catch (Exception e)
             {
                 RecordButtplugException("ButtplugAdapter.Connect", e);
+                _client.Dispose();
                 _client = null;
                 return false;
             }
@@ -87,6 +91,7 @@ namespace ScriptPlayer.Shared
 
         private void Client_ServerDisconnect(object sender, EventArgs e)
         {
+            _client?.Dispose();
             _client = null;
             foreach (var device in _devices.Values)
             {
@@ -192,6 +197,32 @@ namespace ScriptPlayer.Shared
                             speed = CommandConverter.LaunchSpeedToVibratorSpeed(information.DeviceInformation.SpeedTransformed);
                             break;
                         }
+                    case VibratorConversionMode.SpeedTimesLengthFullDuration:
+                    {
+                        speed = CommandConverter.LaunchSpeedAndLengthToVibratorSpeed(
+                            information.DeviceInformation.SpeedOriginal,
+                            information.DeviceInformation.PositionFromTransformed,
+                            information.DeviceInformation.PositionToTransformed);
+                        speed = information.DeviceInformation.TransformSpeed(speed);
+                            break;
+                    }
+                    case VibratorConversionMode.SpeedTimesLengthHalfDuration:
+                    {
+                        if (information.Progress < 0.5)
+                        {
+                            speed = CommandConverter.LaunchSpeedAndLengthToVibratorSpeed(
+                                information.DeviceInformation.SpeedOriginal,
+                                information.DeviceInformation.PositionFromTransformed,
+                                information.DeviceInformation.PositionToTransformed);
+                            speed = information.DeviceInformation.TransformSpeed(speed);
+                            }
+                        else
+                        {
+                            speed = 0.0;
+                        }
+
+                        break;
+                        }
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
@@ -247,6 +278,13 @@ namespace ScriptPlayer.Shared
                         case VibratorConversionMode.SpeedFullDuration:
                             await device.SendVibrateCmd(information.TransformSpeed(CommandConverter.LaunchSpeedToVibratorSpeed(information.SpeedTransformed)));
                             break;
+                        case VibratorConversionMode.SpeedTimesLengthHalfDuration:
+                        case VibratorConversionMode.SpeedTimesLengthFullDuration:
+                            await device.SendVibrateCmd(information.TransformSpeed(CommandConverter.LaunchSpeedAndLengthToVibratorSpeed(
+                                information.SpeedOriginal,
+                                information.PositionFromTransformed,
+                                information.PositionToTransformed)));
+                            break;
                         default:
                             throw new ArgumentOutOfRangeException();
                     }
@@ -288,10 +326,10 @@ namespace ScriptPlayer.Shared
         {
             try
             {
-                if (!_client?.Connected ?? false)
-                    return;
-
-                await _client.DisconnectAsync();
+                if (_client?.Connected ?? false)
+                    await _client.DisconnectAsync();
+                
+                _client?.Dispose();
             }
             catch (Exception e)
             {
@@ -359,7 +397,9 @@ namespace ScriptPlayer.Shared
         PositionToSpeed,
         PositionToSpeedInverted,
         SpeedHalfDuration,
-        SpeedFullDuration
+        SpeedFullDuration,
+        SpeedTimesLengthFullDuration,
+        SpeedTimesLengthHalfDuration,
     }
 
     public class ButtplugConnectionSettings

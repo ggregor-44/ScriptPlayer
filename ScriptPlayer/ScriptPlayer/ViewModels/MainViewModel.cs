@@ -321,6 +321,7 @@ namespace ScriptPlayer.ViewModels
         private FileSystemWatcher _fileWatcher;
         private AudioFileTimeSource _audioHandler;
         private string _loadedAudio;
+        private Geometry _heatMapBounds;
 
         public ObservableCollection<IDevice> Devices => _devices;
 
@@ -1589,6 +1590,17 @@ namespace ScriptPlayer.ViewModels
             {
                 if (Equals(value, _heatMap)) return;
                 _heatMap = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public Geometry HeatMapBounds
+        {
+            get => _heatMapBounds;
+            set
+            {
+                if (Equals(value, _heatMapBounds)) return;
+                _heatMapBounds = value;
                 OnPropertyChanged();
             }
         }
@@ -3698,9 +3710,12 @@ namespace ScriptPlayer.ViewModels
             _devices.Add(device);
             device.IsEnabled = true;
 
-            if(device is Device dev)
+            if (device is Device dev)
+            {
                 dev.Disconnected += Device_Disconnected;
-
+                dev.MinDelayBetweenCommands = Settings.CommandDelay;
+            }
+            
             if (device is ISyncBasedDevice sync)
             {
                 if(!string.IsNullOrEmpty(LoadedScript))
@@ -3998,11 +4013,19 @@ namespace ScriptPlayer.ViewModels
             if (TimeSource == null)
                 return;
 
-            IEnumerable<ScriptAction> actions = Settings.ShowFilledGapsInHeatMap ? _scriptHandler.GetScript() : _scriptHandler.GetUnfilledScript();
+            IEnumerable<FunScriptAction> actions = Settings.ShowFilledGapsInHeatMap ? _scriptHandler.GetScript() : _scriptHandler.GetUnfilledScript();
 
-            List<TimeSpan> timeStamps = FilterDuplicates(actions.ToList()).Select(s => s.TimeStamp).ToList();
-            Brush heatmap = HeatMapGenerator.Generate2(timeStamps, _gapDuration, TimeSpan.Zero, TimeSource.Duration, TimeSource.PlaybackRate);
+            List<FunScriptAction> timeStamps = FilterDuplicates(actions.ToList());
+
+
+            Brush heatmap = HeatMapGenerator.Generate3(timeStamps.Select(t => new TimedPosition()
+            {
+                Position = t.Position,
+                TimeStamp = t.TimeStamp
+            }).ToList(), _gapDuration, TimeSpan.Zero, TimeSource.Duration, TimeSource.PlaybackRate, out Geometry bounds);
+
             HeatMap = heatmap;
+            HeatMapBounds = bounds;
         }
 
         //TODO very similar to HeatMapGenerator.GetSegments --> unify?
@@ -4061,6 +4084,18 @@ namespace ScriptPlayer.ViewModels
             List<ScriptAction> result = new List<ScriptAction>();
 
             foreach (ScriptAction action in timestamps)
+            {
+                if (result.Count == 0 || !result.Last().IsSameAction(action))
+                    result.Add(action);
+            }
+            return result;
+        }
+
+        public List<FunScriptAction> FilterDuplicates(List<FunScriptAction> timestamps)
+        {
+            List<FunScriptAction> result = new List<FunScriptAction>();
+
+            foreach (FunScriptAction action in timestamps)
             {
                 if (result.Count == 0 || !result.Last().IsSameAction(action))
                     result.Add(action);
