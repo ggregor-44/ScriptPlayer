@@ -734,7 +734,7 @@
                                             <RadioButton Grid.Column="4" HorizontalAlignment="Stretch" IsChecked="{Binding Path=Settings.FilterMode, Converter={StaticResource BooleanConverter}, ConverterParameter={x:Static viewModels:PositionFilterMode.SineWave}}" Content="S" ToolTip="Sine Wave" />
                                             <RadioButton Grid.Column="5" HorizontalAlignment="Stretch" IsChecked="{Binding Path=Settings.FilterMode, Converter={StaticResource BooleanConverter}, ConverterParameter={x:Static viewModels:PositionFilterMode.TopBottom}}" Content="TB" ToolTip="Top / Bottom" />
                                         </Grid>
-                                        <Slider Margin="0,4" Minimum="0.1" Maximum="0.9" Value="{Binding Settings.FilterRange}" ToolTip="Filter Range"/>
+                                        <Slider Margin="0,4" Minimum="0.1" Maximum="0.99" Value="{Binding Settings.FilterRange}" ToolTip="Filter Range"/>
                                         <TextBlock Margin="4,0" Text="{Binding Settings.FilterRange, StringFormat={}{0:p0}}" HorizontalAlignment="Stretch" TextAlignment="Center"/>
                                         <shared:RangePreview Ranges="{Binding FilterRanges}" HorizontalAlignment="Stretch" Height="80"/>
                                     </StackPanel>
