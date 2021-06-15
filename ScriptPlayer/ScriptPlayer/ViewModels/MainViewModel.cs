@@ -4425,7 +4425,7 @@ namespace ScriptPlayer.ViewModels
                     GetRange(ref minPosition, ref maxPosition, range, 1.0);
                     break;
                 case PositionFilterMode.Middle:
-                    GetRange(ref minPosition, ref maxPosition, range, 0.5);
+                    GetRange(ref minPosition, ref maxPosition, Math.Min(Settings.FilterRange, range * 1.5), 0.5);
                     break;
                 case PositionFilterMode.Bottom:
                     GetRange(ref minPosition, ref maxPosition, range, 0);
