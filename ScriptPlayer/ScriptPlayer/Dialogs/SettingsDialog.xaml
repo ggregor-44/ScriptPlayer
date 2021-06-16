@@ -383,6 +383,7 @@
                         <StackPanel>
                             <CheckBox Margin="4" IsChecked="{Binding Settings.CheckForNewVersionOnStartup}" Content="Check for new version on startup"/>
                             <CheckBox Margin="4" IsChecked="{Binding Settings.StayOnTop}" Content="Stay on top"/>
+                            <CheckBox Margin="4" IsChecked="{Binding Settings.AutoConnectLaunchDirectly}" Content="Connect Launch Directly after ScriptPlayer has started"/>
                         </StackPanel>
                     </Grid>
                     <Grid controls:PageSelector.ContentIdentifier="Players">
