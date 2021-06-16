@@ -2852,6 +2852,12 @@ namespace ScriptPlayer.ViewModels
                 DisplayText = "Toggle Source Video/Pattern"
             });
 
+            GlobalCommandManager.RegisterCommand(new ScriptplayerCommand(ToggleFilerModeFullMiddle)
+            {
+                CommandId = "ToggleFilerModeFullMiddle",
+                DisplayText = "Toggle Filter Mode Full/Middle"
+            }); 
+
             GlobalCommandManager.RegisterCommand(new ScriptplayerCommand(ToggleCommandSourceVideoNone)
             {
                 CommandId = "ToggleCommandSourceVideoNone",
@@ -3503,6 +3509,16 @@ namespace ScriptPlayer.ViewModels
 
             OsdShowMessage("Source: " + CommandSource, TimeSpan.FromSeconds(3), "Source");
         }
+
+        private void ToggleFilerModeFullMiddle()
+        {
+            if (Settings.FilterMode == PositionFilterMode.FullRange)
+                Settings.FilterMode = PositionFilterMode.Middle;
+            else
+                Settings.FilterMode = PositionFilterMode.FullRange;
+
+            OsdShowMessage("Filter Mode: " + Settings.FilterMode, TimeSpan.FromSeconds(3), "Filter");
+        }                    
 
         private void ToggleCommandSourceVideoNone()
         {
