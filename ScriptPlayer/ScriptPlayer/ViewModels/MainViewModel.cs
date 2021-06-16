@@ -1174,6 +1174,7 @@ namespace ScriptPlayer.ViewModels
 
             AutoStartButtplug();
             AutoConnectButtplug();
+            AutoConnectLaunchDirectly();
 
             InstanceHandler.CommandLineReceived += InstanceHandlerOnCommandLineReceived;
             InstanceHandler.EnableEvents();
@@ -1187,6 +1188,14 @@ namespace ScriptPlayer.ViewModels
                 return;
 
             ConnectButtplug();
+        }
+
+        private void AutoConnectLaunchDirectly()
+        {
+            if (!Settings.AutoConnectLaunchDirectly)
+                return;
+
+            ConnectLaunchDirectly();
         }
 
         private void AutoStartButtplug()

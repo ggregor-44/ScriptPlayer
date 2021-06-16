@@ -226,6 +226,7 @@ namespace ScriptPlayer.ViewModels
         private string _buttplugExePath;
         private bool _autoStartButtplug;
         private bool _autoConnectToButtplug;
+        private bool _autoConnectLaunchDirectly;
         private bool _autoSearchForButtplugDevices;
         private bool _autoShowDeviceManager;
         private int _buttplugConnectionAttempts;
@@ -1299,6 +1300,16 @@ namespace ScriptPlayer.ViewModels
             {
                 if (value == _autoConnectToButtplug) return;
                 _autoConnectToButtplug = value;
+                OnPropertyChanged();
+            }
+        }
+        public bool AutoConnectLaunchDirectly
+        {
+            get => _autoConnectLaunchDirectly;
+            set
+            {
+                if (value == _autoConnectLaunchDirectly) return;
+                _autoConnectLaunchDirectly = value;
                 OnPropertyChanged();
             }
         }
